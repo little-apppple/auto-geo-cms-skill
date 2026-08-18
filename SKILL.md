@@ -7,14 +7,15 @@ description: |
   将「代码仓库（源码）」与「个人知识库（文章）」合并后，委托环境中已安装的外部技能（GEO 优化 / 浏览器验收）
   或在线检索完成优化与验收，再部署上线并把代码提交回库。首次使用会检测环境依赖并与用户沟通补齐（可用 find-skills 查找）。
   触发词：geo cms、静态官网内容管理、知识库同步官网、官网部署、SSG 内容更新、文章同步到官网、官网上线验收
-version: 1.1.0
+version: 1.1.1
 display_name: "GEO 友好 CMS 桥接"
 displayName: "GEO 友好 CMS 桥接"
 metadata:
-  version: 1.1.0
+  version: 1.1.1
   author: geo-cms
   description_zh: "内容↔部署桥接：代码仓库 + 知识库合并 → 委托外部 GEO 技能/在线检索优化 → 委托部署与浏览器验收 → 回库；内容生成与 GEO 规则设定均为外部能力"
   changelog:
+    "1.1.1": "补充 references/first-run-faq.md：首次运行交互话术（阶段零脚本）+ 常规 FAQ（10 条），对齐桥接定位"
     "1.1.0": "收紧职责边界：本技能仅做桥接与编排，内容生成与 GEO 规则设定委托外部技能/在线检索；新增首次环境依赖检测与搭建（find-skills）"
     "1.0.0": "初始版本 —— 含 git 验证、知识库合并、GEO 优化、部署、浏览器验收、回库"
 allowed-tools: Read, Grep, Glob, Bash, WebFetch, WebSearch, Write, Edit, Agent, Skill
@@ -259,6 +260,7 @@ allowed-tools: Read, Grep, Glob, Bash, WebFetch, WebSearch, Write, Edit, Agent, 
 | 类型 | 文件 | 用途 | 加载时机 |
 |------|------|------|----------|
 | references | `references/setup.md` | 环境检测 + 初始化、git 验证、配置写入 | 阶段零/一 |
+| references | `references/first-run-faq.md` | 首次运行交互话术 + 常规 FAQ | 阶段零 |
 | references | `references/knowledge-base.md` | 知识库导出（委托 kb-export 能力） | 步骤 2 |
 | references | `references/geo-spec-management.md` | 规范缓存（外部产出）+ 并行策略 | 步骤 0/7 |
 | references | `references/geo-optimization.md` | 如何委托 geo-optimize 能力 / 降级 | 步骤 5 |
