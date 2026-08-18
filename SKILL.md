@@ -1,5 +1,6 @@
 ---
 name: geo-cms
+slug: geo-cms
 agent_created: true
 description: |
   GEO 友好的 CMS 管理技能 —— 面向 SSG 构建、纯静态部署的官网。
@@ -9,6 +10,7 @@ description: |
   文章同步到官网、官网上线验收、GEO 技术规范本地化、内容合并部署
 version: 1.0.0
 display_name: "GEO 友好 CMS 管理"
+displayName: "GEO 友好 CMS 管理"
 metadata:
   version: 1.0.0
   author: geo-cms
