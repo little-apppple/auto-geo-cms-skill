@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
-"""geo_check.py - static GEO/SEO gap scan on repo root + built static output.
+"""geo_check.py - generic static GEO/SEO gap SCAN (bridge fallback helper).
 
-Scans for the P0/P1 baseline GEO elements required before deploy:
+ROLE (geo-cms 1.1.0 boundary): GEO rule authority lives in an EXTERNAL geo-optimize
+capability (geo-zh skill / WebSearch). This script is a *generic, subordinate* scanner
+used only when that capability is unavailable; it flags presence/absence of common
+baseline elements but does NOT define what the rules should be.
+
+Scans for baseline GEO elements on the built output (run after build, before deploy):
   - robots.txt with AI crawlers allowed
   - llms.txt present
   - JSON-LD (application/ld+json) in built HTML

@@ -1,11 +1,24 @@
-# 全站 GEO/SEO 优化清单（部署前必做）
+# 全站 GEO/SEO 优化（委托 geo-optimize 外部能力）
 
-本清单在阶段二步骤 5 执行，依据本地 `.geo-cms/specs/` 规范对合并后的源码做修正。
-可用 `scripts/geo_check.py` 做静态缺口扫描，按报告从 P0 到 P2 逐项修复。
+> **职责边界**：geo-cms 不设定 GEO 规则。本文件是**如何委托外部 GEO 能力做优化**的操作指南；
+> 下方的 P0/P1/P2 清单**仅作为「geo-optimize 走 WebSearch 降级时」的参考基线**，规则权威永远在
+> 外部 GEO 技能或在线检索，不在本清单。
+
+## 委托优先（步骤 5 首选路径）
+
+1. 调用 `config.capabilities.geo-optimize` 选定的来源：
+   - 若 `mode=skill`（如 `geo-zh`）：直接请该技能对合并后的**源码**做全站 GEO/SEO 优化。
+   - 若 `mode=fallback`（WebSearch 降级，且用户已在阶段零同意）：由 agent 用 WebSearch 取规范，
+     再按下方清单应用——并在汇报中明示「规则未由专业 GEO 技能把关」。
+2. 优化范围（由外部能力决定口径）：robots.txt 开放 AI 爬虫、llms.txt、JSON-LD
+   （Organization/Article/FAQPage）、FAQ 结论前置、NAP 可见、图片 alt、Meta 可引用等。
+3. 可用 `scripts/geo_check.py` 做**通用**静态缺口扫描辅助（规则仍以外部 GEO 能力为准）。
 
 ---
 
-## 优化总原则
+## 降级参考清单（仅 WebSearch 降级时使用）
+
+### 优化总原则
 
 - **可引用性优先**：AI 搜索引擎抓取的是「能直接引用的清晰文本」，结论前置、无死胡同。
 - **结构化数据**：让 AI 明确「这是谁、这是什么文章、有哪些问答」。
@@ -66,9 +79,9 @@
 
 ---
 
-## 静态产物校验（部署前门禁）
+## 静态产物校验（部署前门禁，bridge 自身把关）
 
-部署前必须确认 `outputDir` 为纯静态：
+部署前必须确认 `outputDir` 为纯静态（此检查属站点形态边界，由 bridge 把关，不依赖 GEO 外部能力）：
 - 无 `server.js`/`api/` 运行时依赖、无必须后端才能渲染的正文。
 - `robots.txt`、`llms.txt`、`sitemap.xml` 均在产物根目录可访问。
 - 不满足 → 退回修正 SSG 配置，**拒绝带服务端依赖的产物上线**。

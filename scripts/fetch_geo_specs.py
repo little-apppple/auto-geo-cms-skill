@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
-"""fetch_geo_specs.py - merge real-time GEO/SEO norm findings into the local spec library.
+"""fetch_geo_specs.py - CACHE (not author) GEO/SEO norms into the local spec library.
+
+ROLE (geo-cms 1.1.0 boundary): geo-cms does NOT set GEO rules. This script is only a
+*cache/organizer* for norms sourced from an EXTERNAL geo capability (a GEO skill like geo-zh)
+or WebSearch. It never invents rule口径.
 
 Flow:
-  1. agent runs WebSearch and writes findings into .geo-cms/specs/_inbox.md
+  1. agent obtains norms from the external geo-optimize capability (geo-zh skill output, or
+     WebSearch results) and writes them into .geo-cms/specs/_inbox.md
      using the entry format:  - [GEO-BOT-01] description (source: url; updated: 2026-08-18)
   2. this script parses _inbox.md and merges into topic files (robots/llms/schema/content/technical)
      + manifest.json, de-duplicating by TAG.

@@ -1,20 +1,23 @@
-# 知识库适配器（KB → inbox → content）
+# 知识库适配器（KB → inbox → content，导出委托 kb-export 外部能力）
 
 本文件定义「个人知识库」如何成为官网内容来源。核心链路：
-**知识库导出 Markdown → `.geo-cms/inbox/<kbId>/` → `sync_kb.py` 归一化合并 → `content/`**。
+**知识库导出 Markdown（由 kb-export 能力完成）→ `.geo-cms/inbox/<kbId>/` → `sync_kb.py` 归一化合并 → `content/`**。
+
+> **职责边界**：geo-cms 不生成内容。「导出」动作由 `config.capabilities.kb-export` 选定的来源完成
+> （连接器技能或用户直接上传），geo-cms 只负责把导出物归一化合并进 `content/`。
 
 ---
 
-## 适配器总览
+## 适配器总览（导出执行方 = kb-export 能力）
 
-| type | 导出方式 | 说明 |
-|------|----------|------|
-| `tencent-docs` | 调 tencent-docs 技能，把选中文档/文件夹导出为 `.md` | 本机已连接，优先走连接器 |
-| `feishu` | 调飞书技能，导出知识库节点/多维表格为 Markdown | 本机已连接 |
+| type | 导出执行方 | 说明 |
+|------|------------|------|
+| `tencent-docs` | 调 tencent-docs 连接器技能导出 `.md` | 本机已连接，优先走连接器 |
+| `feishu` | 调飞书技能导出知识库节点/多维表格为 Markdown | 本机已连接 |
 | `ima` | 调 IMA 技能导出知识库 | 需已连接 |
 | `markdown` | 直接读取本地目录（或已 git 同步的文档库） | 无凭据依赖，最稳 |
 
-**通用原则**：本技能不直接调用各 KB 的私有 API，而是复用对应连接器技能完成「导出」，
+**通用原则**：本技能不直接调用各 KB 的私有 API，而是复用 `kb-export` 选定的连接器技能完成「导出」，
 保证鉴权由连接器托管。导出产物统一为 Markdown 落到 `inbox`。
 
 ---

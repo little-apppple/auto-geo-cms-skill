@@ -1,7 +1,49 @@
-# 阶段一：初始化与配置（Setup）
+# 初始化与配置（Setup）
 
-本文件细化 SKILL.md「阶段一」的每一步判定逻辑。目标产出：仓库内能跑通 `git` 读写、
-`config.json` 写好、知识库与部署目标已登记。
+本文件细化 SKILL.md「阶段零（环境检测）」与「阶段一（初始化）」的判定逻辑。目标产出：
+外部依赖映射写入 `config.capabilities`、仓库内能跑通 `git` 读写、`config.json` 写好、
+知识库与部署目标已登记。
+
+> **职责边界提醒**：geo-cms 不生成内容、不设定 GEO 规则。下列四类能力（kb-export / geo-optimize /
+> deploy / browser-verify）必须来自环境已装的外部技能/连接器或在线检索，本阶段负责把它们**检测并登记**。
+
+---
+
+## 阶段零：环境检测与依赖搭建（首次必做）
+
+geo-cms 本体只做桥接，下列能力全部外部化。首次运行必须逐个检测并登记到 `config.capabilities`。
+
+### 0.1 枚举可用能力
+- 用 `Skill` 工具可枚举当前已安装技能（如 `geo-zh`、`agent-browser`、`playwright-cli` 等）。
+- 读取连接器连接状态：EdgeOne Makers（`edgeone-pages`）、飞书、腾讯文档、ima 等是否 `connected`。
+
+### 0.2 逐项判定 available / missing
+对照 SKILL.md「外部依赖契约」四能力：
+
+| 能力 | 检测方式 |
+|------|----------|
+| `kb-export` | 腾讯文档/飞书/ima 任一连接器 connected，或用户承诺直接上传 `.md` |
+| `geo-optimize` | 已装 GEO 类技能（geo-zh 等），或用户同意走 WebSearch 降级 |
+| `deploy` | EdgeOne Makers connected，或用户提供自有服务器 SSH/远程目录 |
+| `browser-verify` | 已装 agent-browser / playwright 技能，或同意 verify_deploy.py 降级 |
+
+### 0.3 补齐 missing 项（与用户沟通）
+- 调用 `Skill` 工具 `command="find-skills"` 查找可安装技能（如「GEO 优化」「浏览器自动化」）；
+- 或请用户连接对应连接器（EdgeOne Makers / 飞书 / 腾讯文档 / ima）；
+- `geo-optimize` 实在无法安装时，明确告知用户「将走 WebSearch 降级，规则未由专业 GEO 技能把关」并取得同意；
+- `deploy` 无任何来源 → **停止**，缺必要外部能力无法继续。
+
+### 0.4 写入并确认
+把映射写进 `config.capabilities`（每项含 `resolved` 与 `mode: skill|connector|fallback`），
+向用户展示后确认，再进入阶段一。示例：
+```json
+"capabilities": {
+  "kb-export":     {"resolved": "tencent-docs", "mode": "connector"},
+  "geo-optimize":  {"resolved": "geo-zh",       "mode": "skill"},
+  "deploy":        {"resolved": "edgeone-pages","mode": "connector"},
+  "browser-verify":{"resolved": "agent-browser","mode": "skill"}
+}
+```
 
 ---
 
@@ -53,12 +95,15 @@ python scripts/verify_git.py --repo <url> --path <localPath> --branch <branch>
 
 让用户明确**选择哪些知识库**作为内容来源（可多选）。支持的 `type`：
 
-| type | 来源 | 适配器 |
+| type | 来源 | 导出方式（依赖 `capabilities.kb-export`） |
 |------|------|--------|
-| `tencent-docs` | 腾讯文档（本机已连接） | 走 tencent-docs 技能导出 Markdown |
+| `tencent-docs` | 腾讯文档（本机已连接） | 走 tencent-docs 连接器技能导出 Markdown |
 | `feishu` | 飞书文档/知识库（本机已连接） | 走飞书技能导出 |
 | `ima` | IMA 知识库 | 走 ima 技能（若已连接） |
 | `markdown` | 本地 Markdown 目录 / 已 git 同步的文档 | 直接读取 |
+
+> 导出的**执行**由 `kb-export` 能力选定的来源完成（连接器技能或用户上传），geo-cms 只负责把导出物
+> 归一化合并进 `content/`，不创作正文。
 
 每个 KB 记录：`{id, type, name, inbox: ".geo-cms/inbox/<id>", format: "md"}`。
 `inbox` 为该 KB 导出落点，合并时由 `sync_kb.py` 读取。
@@ -69,14 +114,14 @@ python scripts/verify_git.py --repo <url> --path <localPath> --branch <branch>
 
 让用户提供部署目标，`config.deployment.type` 取其一：
 
-- `edgeone-pages`：托管平台。本机已连接 EdgeOne Makers 连接器，部署时走其技能。
-  记录 `project`（项目名/新建名）、`distDir`（静态产物目录）。
-- `custom-server`：自有服务器。记录 `ssh`（user@host）、`remoteDir`（静态根目录）、
-  可选 `distDir`。部署用 `rsync -az --delete <distDir>/ <ssh>:<remoteDir>/`。
+- `edgeone-pages`：托管平台。本机已连接 EdgeOne Makers 连接器，部署时**委托**其技能上线
+  （对应 `capabilities.deploy.mode=connector`）。记录 `project`（项目名/新建名）、`distDir`。
+- `custom-server`：自有服务器。记录 `ssh`（user@host）、`remoteDir`（静态根目录）、可选 `distDir`。
+  部署用 `rsync -az --delete <distDir>/ <ssh>:<remoteDir>/`（bridge 执行该命令，属部署编排）。
 - `other`：用户自述方案，记录自由字段，部署步骤由用户确认。
 
-> 部署前必须确认产物为纯静态（见 `geo-optimization.md` 的静态校验），
-> 非静态一律拒绝上线。
+> **部署是必要外部能力，不可降级**：若 `capabilities.deploy` 无任何来源，阶段零即应停止。
+> 部署前必须确认产物为纯静态（见 `geo-optimization.md` 的静态校验），非静态一律拒绝上线。
 
 ---
 
@@ -99,7 +144,8 @@ git push
 
 ## 完成判定
 
-满足以下全部条件，阶段一结束，可进入阶段二：
+满足以下全部条件，阶段零 + 阶段一结束，可进入阶段二：
+- [ ] `config.capabilities` 四能力均已 `resolved` 且经用户确认（`deploy` 必须有真实来源）
 - [ ] `verify_git.py` 输出 `READ_OK` + `WRITE_OK`
 - [ ] `config.knowledgeBases` 至少 1 项且 `type` 合法
 - [ ] `config.deployment.type` 已填且参数完整

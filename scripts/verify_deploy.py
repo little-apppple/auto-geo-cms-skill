@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""verify_deploy.py - browser verification driver for the live site.
+"""verify_deploy.py - FALLBACK browser verification driver for the live site.
+
+ROLE (geo-cms 1.1.0 boundary): browser verification is an EXTERNAL capability
+(browser-verify = agent-browser / playwright skill). This script is a *minimal local
+fallback* used only when no browser skill is available (requires Playwright installed).
 
 If Playwright is available, opens each page headlessly and asserts:
   - HTTP 200

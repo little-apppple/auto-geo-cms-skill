@@ -1,15 +1,18 @@
-# 上线后浏览器自动化验收
+# 上线后浏览器自动化验收（委托 browser-verify 外部能力）
 
-本文件细化阶段二步骤 8。部署完成后，用浏览器自动化核对线上内容，确保「优化真的生效、
-用户看到的就是优化后的样子」。
+> **职责边界**：geo-cms 不实现浏览器自动化。本文件指导如何**委托** `config.capabilities.browser-verify`
+> 选定的来源做验收；首选 agent-browser / playwright 技能，`scripts/verify_deploy.py` 仅作最小本地降级。
+
+部署完成后，用浏览器自动化核对线上内容，确保「优化真的生效、用户看到的就是优化后的样子」。
 
 ---
 
 ## 验收前置
 
 - 已取得线上 URL（首页 + 本次新增/更新页面）。
-- 加载浏览器自动化能力：优先用 **agent-browser / playwright-cli** 技能做真实页面操作；
-  或运行 `scripts/verify_deploy.py`（若环境已装 Playwright 则无头校验）。
+- 加载浏览器能力（按 `capabilities.browser-verify`）：
+  - `mode=skill`（如 agent-browser / playwright-cli）：优先用真实页面操作技能做核对；
+  - `mode=fallback`：运行 `scripts/verify_deploy.py`（需环境已装 Playwright）做无头校验。
 
 ---
 
@@ -39,7 +42,7 @@
 
 ---
 
-## verify_deploy.py 用法
+## verify_deploy.py 用法（降级用，非首选）
 
 ```bash
 python scripts/verify_deploy.py \
@@ -55,7 +58,7 @@ python scripts/verify_deploy.py \
 - `robots.txt`/`llms.txt` 可访问
 输出每页通过/失败项，供 agent 汇总。
 
-> 若 Playwright 不可用，脚本降级为提示 agent 改用浏览器技能手动核对上述清单。
+> 这是降级路径；**首选**是用 agent-browser / playwright 技能做更贴近真实的核对。
 
 ---
 
@@ -70,5 +73,5 @@ python scripts/verify_deploy.py \
 
 ## 完成判定
 
-满足：全部清单项通过 + `verify_deploy.py` 无 FAIL（或浏览器技能手动核对全绿），
+满足：全部清单项通过 +（browser-verify 技能核对全绿 或 `verify_deploy.py` 无 FAIL），
 方可视为「上线验收通过」，进入步骤 9。

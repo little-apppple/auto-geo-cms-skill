@@ -1,10 +1,13 @@
-# 部署适配器
+# 部署（委托 deploy 外部能力）
 
-本文件细化阶段二步骤 6 的部署动作。统一要求：**产物必须是纯静态**，否则拒绝上线。
+> **职责边界**：geo-cms 不实现部署平台 API。本文件指导如何**委托** `config.capabilities.deploy`
+> 选定的来源把静态产物上线；部署是必要外部能力，阶段零必须确认有真实来源，不可降级。
+
+统一要求：**产物必须是纯静态**，否则拒绝上线（此门禁由 bridge 把关）。
 
 ---
 
-## 通用前置
+## 通用前置（bridge 自身）
 
 1. 运行 `config.site.buildCmd` 构建。
 2. 校验 `config.site.outputDir` 为纯静态（见 geo-optimization.md「静态产物校验」）。
@@ -12,21 +15,18 @@
 
 ---
 
-## 适配器 A：EdgeOne Pages（托管平台）
+## 适配器 A：EdgeOne Pages（连接器，mode=connector）
 
-本机已连接 **EdgeOne Makers** 连接器，优先走其技能部署：
+本机已连接 **EdgeOne Makers** 连接器，优先**委托**其技能部署：
 
-- `config.deployment.type = "edgeone-pages"`
+- `config.deployment.type = "edgeone-pages"`，`capabilities.deploy.resolved = "edgeone-pages"`
 - 字段：`project`（项目名，可新建）、`distDir`（静态产物目录，默认 `out`）
-- 流程：使用 EdgeOne Pages 技能将 `distDir` 部署/更新到指定项目；
-  取回线上 URL 供步骤 8 验收。
+- 流程：调用 EdgeOne Pages 技能将 `distDir` 部署/更新到指定项目，取回线上 URL 供步骤 8 验收。
 - 平台自带版本与回滚，部署异常直接在平台回退上一版。
-
-> 部署优先级遵循用户偏好：已连接 EdgeOne Makers 时优先用它。
 
 ---
 
-## 适配器 B：自有服务器（custom-server）
+## 适配器 B：自有服务器（custom-server，bridge 执行 rsync 编排）
 
 - `config.deployment.type = "custom-server"`
 - 字段：`ssh`（user@host）、`remoteDir`（静态根目录）、`distDir`
@@ -40,6 +40,7 @@ rsync -az --delete <distDir>/ <ssh>:<remoteDir>/
 ```
 
 - 失败处理：保留 `.bak-*` 不删；修复后重跑 rsync，必要时 `cp -r` 回滚。
+- 注：此处 rsync 属「部署编排」，非 geo-cms 自研部署能力；若用户希望改用其他同步工具，按需调整。
 
 ---
 

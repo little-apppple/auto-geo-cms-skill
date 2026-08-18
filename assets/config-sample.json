@@ -33,6 +33,12 @@
     "project": "my-official-site",
     "distDir": "out"
   },
+  "capabilities": {
+    "kb-export":     {"resolved": "tencent-docs", "mode": "connector"},
+    "geo-optimize":  {"resolved": "geo-zh",       "mode": "skill"},
+    "deploy":        {"resolved": "edgeone-pages","mode": "connector"},
+    "browser-verify":{"resolved": "agent-browser","mode": "skill"}
+  },
   "specs": {
     "dir": ".geo-cms/specs",
     "lastUpdated": null
