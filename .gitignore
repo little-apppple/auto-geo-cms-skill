@@ -1,0 +1,4 @@
+# Skill repo: exclude local memory + python bytecode
+.workbuddy/
+__pycache__/
+*.pyc

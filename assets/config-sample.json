@@ -1,0 +1,40 @@
+{
+  "site": {
+    "name": "示例官网",
+    "ssg": "next-static",
+    "contentDir": "content",
+    "buildCmd": "npm run build",
+    "outputDir": "out",
+    "staticExport": true
+  },
+  "git": {
+    "repo": "git@github.com:org/site.git",
+    "localPath": ".",
+    "branch": "main"
+  },
+  "knowledgeBases": [
+    {
+      "id": "kb1",
+      "type": "tencent-docs",
+      "name": "产品知识库",
+      "inbox": ".geo-cms/inbox/kb1",
+      "format": "md"
+    },
+    {
+      "id": "kb2",
+      "type": "feishu",
+      "name": "帮助文档库",
+      "inbox": ".geo-cms/inbox/kb2",
+      "format": "md"
+    }
+  ],
+  "deployment": {
+    "type": "edgeone-pages",
+    "project": "my-official-site",
+    "distDir": "out"
+  },
+  "specs": {
+    "dir": ".geo-cms/specs",
+    "lastUpdated": null
+  }
+}

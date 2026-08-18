@@ -1,0 +1,5 @@
+# geo-cms 运行时产物：忽略 inbox（待合并的原始导出），保留 config 与 specs
+.geo-cms/inbox/
+.geo-cms/sync-manifest.json
+.geo-cms/geo-report.json
+.geo-cms/verify-report.json
