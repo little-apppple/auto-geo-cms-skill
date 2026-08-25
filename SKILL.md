@@ -7,14 +7,16 @@ description: |
   将「代码仓库（源码）」与「个人知识库（文章）」合并后，委托环境中已安装的外部技能（GEO 优化 / 浏览器验收）
   或在线检索完成优化与验收，再部署上线并把代码提交回库。首次使用会检测环境依赖并与用户沟通补齐（可用 find-skills 查找）。
   触发词：geo cms、静态官网内容管理、知识库同步官网、官网部署、SSG 内容更新、文章同步到官网、官网上线验收
-version: 1.1.2
+version: 1.1.4
 display_name: "GEO 友好 CMS 桥接"
 displayName: "GEO 友好 CMS 桥接"
 metadata:
-  version: 1.1.2
+  version: 1.1.4
   author: geo-cms
   description_zh: "内容↔部署桥接：代码仓库 + 知识库合并 → 委托外部 GEO 技能/在线检索优化 → 委托部署与浏览器验收 → 回库；内容生成与 GEO 规则设定均为外部能力"
   changelog:
+    "1.1.4": "修复 sync_kb.py 路径根（config 在 .geo-cms 时正确解析 content/inbox）；新增持久 .geo-cms/content-index.json（跨运行增量 diff + prune 作用域）与默认孤儿清理（--no-prune 可关）；步骤 8 验收页清单从 sync-manifest 派生；best-practices 补 G4/G5（Astro Content Collections + llms.txt/sitemap 生成）"
+    "1.1.3": "新增 references/best-practices.md：推荐体系（Astro+Obsidian/Markdown+git+EdgeOne）、三条约束映射、图文/富媒体内容适配与 Obsidian 接入要点"
     "1.1.2": "README 新增「为什么小团队更适合 geo-cms（TCO 视角）」定位章节：首配后边际成本趋零、可插拔带来实时性/生成/自动化三翻转"
     "1.1.1": "补充 references/first-run-faq.md：首次运行交互话术（阶段零脚本）+ 常规 FAQ（10 条），对齐桥接定位"
     "1.1.0": "收紧职责边界：本技能仅做桥接与编排，内容生成与 GEO 规则设定委托外部技能/在线检索；新增首次环境依赖检测与搭建（find-skills）"
@@ -222,7 +224,10 @@ allowed-tools: Read, Grep, Glob, Bash, WebFetch, WebSearch, Write, Edit, Agent, 
 
 ### 3. 合并到仓库 content 目录（bridge 自身）
 运行 `scripts/sync_kb.py --config .geo-cms/config.json`
-- 归一化 frontmatter（title/date/slug/tags），按 slug 去重；写入 `site.contentDir`，输出「新增/更新」清单。
+- 归一化 frontmatter（title/date/slug/tags），按 slug 去重；写入 `site.contentDir`，输出「新增/更新/跳过/清理」清单到 `.geo-cms/sync-manifest.json`。
+- **持久内容索引**：同步写 `.geo-cms/content-index.json`（slug → {title, source, hash, lastSync, origin}），跨运行保留，支撑桥接层真增量 diff 与删除作用域。
+- **孤儿清理（prune，默认开启）**：知识库中已删除/移除的文章，其 `content/<slug>.md` 会被自动删除；仅作用于 `origin=kb` 的索引项，手写 `origin=manual` 文件永不被误删。需保留可用 `--no-prune` 关闭。
+- 步骤 8 验收页面清单直接取本步 `sync-manifest.json` 的 added/updated（首页必含）。
 
 ### 4. 拉取最新源码
 `git pull --rebase`（避免与远程分叉）。
@@ -245,9 +250,10 @@ allowed-tools: Read, Grep, Glob, Bash, WebFetch, WebSearch, Write, Edit, Agent, 
 新规范并入 `.geo-cms/specs/`（去重 + 标注来源）。更新 `config.specs.lastUpdated`。
 
 ### 8. 浏览器自动化验收（委托 browser-verify 外部能力）
+- **验收范围**：从 `.geo-cms/sync-manifest.json` 取本次 `added`+`updated` 页面路径（首页 `/` 必含）；避免手填遗漏。
 - **首选**：用 `agent-browser` / `playwright` 技能打开线上首页与本次新增/更新页面，核对正文可见、
   FAQ/结论前置、Schema 块存在、robots/llms 可访问、无 404、GEO 元素到位。
-- **降级**：若未安装浏览器技能，用 `scripts/verify_deploy.py` 做最小本地核对。
+- **降级**：若未安装浏览器技能，用 `scripts/verify_deploy.py --pages <added,updated,/>` 做最小本地核对。
 - 验收不通过 → 回到步骤 5/6 修复后重新部署验收。
 
 ### 9. 提交更新代码回库（bridge 自身）
@@ -262,13 +268,14 @@ allowed-tools: Read, Grep, Glob, Bash, WebFetch, WebSearch, Write, Edit, Agent, 
 |------|------|------|----------|
 | references | `references/setup.md` | 环境检测 + 初始化、git 验证、配置写入 | 阶段零/一 |
 | references | `references/first-run-faq.md` | 首次运行交互话术 + 常规 FAQ | 阶段零 |
+| references | `references/best-practices.md` | 推荐体系（SSG/KB/托管选型）、图文内容适配、Obsidian 接入要点 | 选型/阶段零 |
 | references | `references/knowledge-base.md` | 知识库导出（委托 kb-export 能力） | 步骤 2 |
 | references | `references/geo-spec-management.md` | 规范缓存（外部产出）+ 并行策略 | 步骤 0/7 |
 | references | `references/geo-optimization.md` | 如何委托 geo-optimize 能力 / 降级 | 步骤 5 |
 | references | `references/deployment.md` | 如何委托 deploy 能力 | 步骤 6 |
 | references | `references/browser-verification.md` | 如何委托 browser-verify 能力 / 降级 | 步骤 8 |
 | scripts | `scripts/verify_git.py` | **bridge 自身**：git 读取/写入权限探测 | 阶段一/九 |
-| scripts | `scripts/sync_kb.py` | **bridge 自身**：KB 导出归一化合并到 content | 步骤 3 |
+| scripts | `scripts/sync_kb.py` | **bridge 自身**：KB 导出归一化合并到 content；写 `.geo-cms/content-index.json` 持久索引 + 默认 prune 孤儿 | 步骤 3 |
 | scripts | `scripts/fetch_geo_specs.py` | 降级辅助：缓存外部 GEO 规范（不设定规则） | 步骤 0/7 |
 | scripts | `scripts/geo_check.py` | 降级辅助：通用静态 GEO 缺口扫描 | 步骤 5/6 |
 | scripts | `scripts/verify_deploy.py` | 降级辅助：最小本地浏览器核对 | 步骤 8 |
