@@ -5,16 +5,19 @@ agent_created: true
 description: |
   GEO 友好的 CMS 管理「桥接」技能 —— 只做内容源与部署之间的编排与搬运，不做内容生成、也不设定 GEO/SEO 规则。
   将「代码仓库（源码）」与「个人知识库（文章）」合并后，委托环境中已安装的外部技能（GEO 优化 / 浏览器验收）
-  或在线检索完成优化与验收，再部署上线并把代码提交回库。首次使用会检测环境依赖并与用户沟通补齐（可用 find-skills 查找）。
+  或在线检索完成优化与验收，再部署上线并把代码提交回库。首次使用会检测环境依赖并与用户沟通补齐（可用 find-skills 查找），
+  并提供默认推荐清单（Astro 模板来源、geo-cn 规则技能、内容生成技能、ima/Obsidian 知识库）、模板保护、提示词收集、构建日志与渐进引导，降低使用门槛。
   触发词：geo cms、静态官网内容管理、知识库同步官网、官网部署、SSG 内容更新、文章同步到官网、官网上线验收
-version: 1.1.4
+version: 1.2.1
 display_name: "GEO 友好 CMS 桥接"
 displayName: "GEO 友好 CMS 桥接"
 metadata:
-  version: 1.1.4
+  version: 1.2.1
   author: geo-cms
-  description_zh: "内容↔部署桥接：代码仓库 + 知识库合并 → 委托外部 GEO 技能/在线检索优化 → 委托部署与浏览器验收 → 回库；内容生成与 GEO 规则设定均为外部能力"
+  description_zh: "内容↔部署桥接：代码仓库 + 知识库合并 → 委托外部 GEO 技能/在线检索优化 → 委托部署与浏览器验收 → 回库；内容生成与 GEO 规则设定均为外部能力；内置默认推荐清单、模板保护、提示词收集、构建日志与渐进引导降低使用门槛"
   changelog:
+    "1.2.1": "loop review 修复：setup.md 补默认推荐清单(§0.0)/模板选定(§3.5)/提示词收集(§3.6)/构建日志初始化，完成判定扩至 9 项；config-sample 补 site.template；README 新增降门槛章节并补全目录树；构建日志统一为末尾追加(修复读取顺序矛盾)；gitignore 注释更正保留清单"
+    "1.2.0": "降低使用门槛：新增 references/defaults.md 默认推荐清单（Astro 模板来源 htmlrev、geo-cn 规则技能、内容生成技能、ima/Obsidian 知识库+目录约束）；模板保护规则（选定后非用户强制不得删改，只按模板丰富内容）；提示词收集（.geo-cms/prompts/ 构建提示词+文章提示词）；构建日志（.geo-cms/build-log.md 每次必记）；渐进引导（每步告知该补什么）"
     "1.1.4": "修复 sync_kb.py 路径根（config 在 .geo-cms 时正确解析 content/inbox）；新增持久 .geo-cms/content-index.json（跨运行增量 diff + prune 作用域）与默认孤儿清理（--no-prune 可关）；步骤 8 验收页清单从 sync-manifest 派生；best-practices 补 G4/G5（Astro Content Collections + llms.txt/sitemap 生成）"
     "1.1.3": "新增 references/best-practices.md：推荐体系（Astro+Obsidian/Markdown+git+EdgeOne）、三条约束映射、图文/富媒体内容适配与 Obsidian 接入要点"
     "1.1.2": "README 新增「为什么小团队更适合 geo-cms（TCO 视角）」定位章节：首配后边际成本趋零、可插拔带来实时性/生成/自动化三翻转"
@@ -47,6 +50,8 @@ allowed-tools: Read, Grep, Glob, Bash, WebFetch, WebSearch, Write, Edit, Agent, 
 - ❌ **不设定 GEO/SEO 规则**：robots/llms/Schema/FAQ 等规范的「权威性」来自外部 GEO 技能或在线检索；
   本技能最多**缓存归档**这些外部产出，绝不自己拍板规则口径。
 - ❌ **不实现浏览器自动化 / 部署平台 API**：这些由对应的连接器或技能提供，本技能只负责编排调用。
+- ❌ **不擅改模板**：前端模板一经用户选定（记录在 `config.site.template`），非用户强制要求
+  不得删改页面/组件/布局/设计，只允许按模板既有结构填充与丰富内容（详见 `references/defaults.md` 模板保护规则）。
 
 > 一句话：**能力（content / GEO rules / browser / deploy）全在外部；geo-cms 只做连接与编排。**
 
@@ -130,7 +135,13 @@ allowed-tools: Read, Grep, Glob, Bash, WebFetch, WebSearch, Write, Edit, Agent, 
     "contentDir": "content",
     "buildCmd": "npm run build",
     "outputDir": "out",
-    "staticExport": true
+    "staticExport": true,
+    "template": {
+      "source": "htmlrev",
+      "name": "所选模板名",
+      "url": "https://模板地址",
+      "selectedAt": "2026-10-21"
+    }
   },
   "git": {
     "repo": "git@github.com:org/site.git",
@@ -172,6 +183,11 @@ allowed-tools: Read, Grep, Glob, Bash, WebFetch, WebSearch, Write, Edit, Agent, 
 
 > 详细步骤见 `references/setup.md` §环境检测。
 
+0. **给出默认推荐清单（降门槛）**：对照 `references/defaults.md` 向用户展示推荐组合 ——
+   前端模板来源（htmlrev 免费 Astro 模板）、GEO 规则技能（geo-cn）、内容生成技能
+   （unclecheng-reduce-ai-perception-v2 等）、知识库选型（已连 ima MCP → 推荐 ima；
+   本地 Obsidian → 推荐 vault；否则 markdown inbox）及其**目录结构约束**。
+   用户可全部采纳或替换，确认结果进入第 1 步能力检测。
 1. **枚举可用能力**：列出当前环境的技能与连接器（用 `Skill` 工具可枚举；或读取连接器连接状态）。
 2. **逐项判定**：对照「外部依赖契约」四能力，标记为 `available` / `missing`。
 3. **补齐 `missing` 项**：
@@ -186,18 +202,29 @@ allowed-tools: Read, Grep, Glob, Bash, WebFetch, WebSearch, Write, Edit, Agent, 
 
 ## 阶段一：初始化与配置（一次性）
 
-> 详细步骤与判定逻辑见 `references/setup.md`。
+> 详细步骤与判定逻辑见 `references/setup.md`；默认推荐与引导话术见 `references/defaults.md`。
 
 1. **收集代码 git 库**：请用户提供仓库地址（HTTPS 或 SSH）。
 2. **验证本地访问权限**（循环直到连通）：运行 `scripts/verify_git.py --repo <url> --path <local>`
    - 读取权限：能 `clone`/`fetch`；写入权限：能 `push`（`--dry-run` 探测）。
    - 失败 → 打印可操作原因（缺 SSH key / 无写权限 / 仓库不存在），**停止并请用户修复后重试**，
      直到返回 `READ_OK + WRITE_OK` 才继续。
-3. **收集知识库指定**：让用户选择**一个或多个**知识库（tencent-docs / 飞书 / IMA / 本地 Markdown），
-   记录到 `config.knowledgeBases`，并通过 `capabilities.kb-export` 选定的来源导出。
-4. **收集部署信息**：让用户提供部署目标 —— 托管平台（如 EdgeOne Pages）或自有服务器（SSH + 远程目录 / rsync），
+3. **选定前端模板（新站必做）**：引导用户从推荐来源（htmlrev 免费 Astro 模板等）选定模板，
+   写入 `config.site.template`（source/name/url/selectedAt）。**此后受模板保护规则约束**：
+   非用户强制要求不得删改，只能按模板规范丰富内容。
+4. **收集知识库指定**：让用户选择**一个或多个**知识库（按 defaults.md 推荐顺序：ima / Obsidian /
+   tencent-docs / 飞书 / 本地 Markdown），**确认目录结构约束**（一库一根目录、一文一文件、
+   frontmatter 必含 title/date、图片同级 assets/、禁 wikilinks），记录到 `config.knowledgeBases`，
+   并通过 `capabilities.kb-export` 选定的来源导出。
+5. **收集提示词（引导用户输出，agent 不代写）**：按 `references/defaults.md` §三话术，
+   引导用户提供并落盘 `.geo-cms/prompts/build-prompt.md`（站点怎么建：风格/受众/页面清单/禁改项）
+   与 `.geo-cms/prompts/article-prompt.md`（文章怎么写：选题/结构/口吻/关键词/去 AI 味要求）。
+   用户暂不提供可跳过，后续构建前再次引导。
+6. **收集部署信息**：让用户提供部署目标 —— 托管平台（如 EdgeOne Pages）或自有服务器（SSH + 远程目录 / rsync），
    记录到 `config.deployment`，并通过 `capabilities.deploy` 选定的来源上线。
-5. **写 `config.json`**：落盘含 `capabilities` 的完整结构，并 `git add .geo-cms/config.json && git commit -m "chore: geo-cms config"`。
+7. **初始化构建日志**：创建 `.geo-cms/build-log.md`（模板见 `assets/build-log-template.md`）。
+8. **写 `config.json`**：落盘含 `capabilities`、`site.template` 的完整结构，
+   并 `git add .geo-cms/config.json && git commit -m "chore: geo-cms config"`。
 
 ---
 
@@ -206,7 +233,9 @@ allowed-tools: Read, Grep, Glob, Bash, WebFetch, WebSearch, Write, Edit, Agent, 
 > 完整步骤、脚本参数与验收清单见 `references/geo-spec-management.md`、`geo-optimization.md`、
 > `browser-verification.md`、`deployment.md`。
 
-### 0. 规范预检（决定并行策略，依赖 geo-optimize 能力）
+### 0. 读取上次构建日志 + 规范预检（决定并行策略）
+- 读 `.geo-cms/build-log.md` 最后一条：带上次遗留事项与下一步建议进入本次更新。
+- 规范预检（依赖 geo-optimize 能力）：
 ```
 本地 .geo-cms/specs/ 是否已有「外部 GEO 能力/检索」产出的规范缓存？
 ├─ 存在 ──→ 并行执行：
@@ -257,8 +286,13 @@ allowed-tools: Read, Grep, Glob, Bash, WebFetch, WebSearch, Write, Edit, Agent, 
 - 验收不通过 → 回到步骤 5/6 修复后重新部署验收。
 
 ### 9. 提交更新代码回库（bridge 自身）
-`git add -A && git commit -m "content: 同步知识库 + GEO 优化" && git push`
-推送成功后向用户汇报：本次更新篇数、优化项、验收结果、上线 URL、所用外部能力清单。
+- **追加构建日志（必做）**：按 `assets/build-log-template.md` 向 `.geo-cms/build-log.md` 写入本次条目
+  （触发来源、同步 added/updated/pruned、GEO 门禁结果、构建、部署 URL、验收结果、
+  **模板未动/模板变更**、所用外部能力、遗留事项与下一步建议）。
+- **渐进引导（每次结束附 1~3 条下一步建议）**：依据构建日志遗留事项 + geo-report 未清项 +
+  prompts 缺失项（如 article-prompt 未填则提醒）。让用户始终知道该补什么、该添加什么。
+- `git add -A && git commit -m "content: 同步知识库 + GEO 优化" && git push`
+- 推送成功后向用户汇报：本次更新篇数、优化项、验收结果、上线 URL、所用外部能力清单、下一步建议。
 
 ---
 
@@ -268,6 +302,7 @@ allowed-tools: Read, Grep, Glob, Bash, WebFetch, WebSearch, Write, Edit, Agent, 
 |------|------|------|----------|
 | references | `references/setup.md` | 环境检测 + 初始化、git 验证、配置写入 | 阶段零/一 |
 | references | `references/first-run-faq.md` | 首次运行交互话术 + 常规 FAQ | 阶段零 |
+| references | `references/defaults.md` | **默认推荐清单**（模板/技能/知识库+目录约束）、模板保护规则、提示词收集、渐进引导 | 阶段零/一、步骤 9 |
 | references | `references/best-practices.md` | 推荐体系（SSG/KB/托管选型）、图文内容适配、Obsidian 接入要点 | 选型/阶段零 |
 | references | `references/knowledge-base.md` | 知识库导出（委托 kb-export 能力） | 步骤 2 |
 | references | `references/geo-spec-management.md` | 规范缓存（外部产出）+ 并行策略 | 步骤 0/7 |
@@ -281,6 +316,7 @@ allowed-tools: Read, Grep, Glob, Bash, WebFetch, WebSearch, Write, Edit, Agent, 
 | scripts | `scripts/verify_deploy.py` | 降级辅助：最小本地浏览器核对 | 步骤 8 |
 | assets | `assets/content-template.md` | 文章落库模板（含 frontmatter） | 步骤 3 |
 | assets | `assets/spec-template.md` | 技术规范缓存文档模板 | 步骤 0/7 |
+| assets | `assets/build-log-template.md` | 构建日志条目模板（每次构建必记） | 阶段一/步骤 9 |
 
 ---
 
@@ -296,6 +332,7 @@ allowed-tools: Read, Grep, Glob, Bash, WebFetch, WebSearch, Write, Edit, Agent, 
 | 构建非纯静态 | 退回步骤 5 修正 SSG 配置；拒绝带服务端依赖的产物上线 |
 | 部署失败 | 保留上一版线上（平台回滚 / 不覆盖远程目录），修复后重部署 |
 | 浏览器验收不通过 | 回到步骤 5/6 修复，重新部署并复验 |
+| 用户要求删改模板但非强制场景 | 按模板保护规则拒绝并解释；用户坚持 → 引导前端设计技能执行，日志记录变更点 |
 | WebSearch 不可用 | 退回纯本地规范缓存继续，标注「未做实时增量」 |
 
 ## 质量保障
@@ -305,3 +342,5 @@ allowed-tools: Read, Grep, Glob, Bash, WebFetch, WebSearch, Write, Edit, Agent, 
 - 所有 GEO 结论避免绝对承诺；**规则权威永远在外部 GEO 技能/在线检索，不在本技能**。
 - 不虚构 URL/数据；外部检索所得须标注来源写入 `specs/`。
 - 本技能不生成正文内容，仅搬运/合并用户提供或知识库导出的内容。
+- 模板保护：选定模板后非用户强制不得删改，每次构建日志必须标注「模板未动/模板变更」，可审计。
+- 构建日志 append-only：`.geo-cms/build-log.md` 每次构建必追加，不修改历史记录；`prompts/` 是用户生产资料，只收集转交不代写。

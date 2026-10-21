@@ -5,7 +5,13 @@
     "contentDir": "content",
     "buildCmd": "npm run build",
     "outputDir": "out",
-    "staticExport": true
+    "staticExport": true,
+    "template": {
+      "source": "htmlrev",
+      "name": "所选模板名",
+      "url": "https://htmlrev.com/模板地址",
+      "selectedAt": "2026-10-21"
+    }
   },
   "git": {
     "repo": "git@github.com:org/site.git",

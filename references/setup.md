@@ -13,8 +13,17 @@
 
 geo-cms 本体只做桥接，下列能力全部外部化。首次运行必须逐个检测并登记到 `config.capabilities`。
 
+### 0.0 给出默认推荐清单（降门槛）
+对照 `references/defaults.md` 向用户展示推荐组合并逐项确认（可全部替换）：
+- 前端模板来源（htmlrev 免费 Astro 模板，新站必选，选定后受模板保护规则约束）；
+- GEO 规则技能（geo-cn）、内容生成技能（unclecheng-reduce-ai-perception-v2）、
+  前端设计技能（frontend-design-v2，仅强制改模板时用）；
+- 知识库选型（已连 ima MCP → ima；本地 Obsidian → vault；否则 markdown inbox）
+  及其**目录结构约束**（一库一根目录、一文一文件、frontmatter 必含 title/date、
+  图片同级 `assets/`、禁 wikilinks）。
+
 ### 0.1 枚举可用能力
-- 用 `Skill` 工具可枚举当前已安装技能（如 `geo-zh`、`agent-browser`、`playwright-cli` 等）。
+- 用 `Skill` 工具可枚举当前已安装技能（如 `geo-zh`、`geo-cn`、`agent-browser`、`playwright-cli` 等）。
 - 读取连接器连接状态：EdgeOne Makers（`edgeone-pages`）、飞书、腾讯文档、ima 等是否 `connected`。
 
 ### 0.2 逐项判定 available / missing
@@ -108,6 +117,41 @@ python scripts/verify_git.py --repo <url> --path <localPath> --branch <branch>
 每个 KB 记录：`{id, type, name, inbox: ".geo-cms/inbox/<id>", format: "md"}`。
 `inbox` 为该 KB 导出落点，合并时由 `sync_kb.py` 读取。
 
+**目录结构约束（defaults.md，选型时必须向用户确认）**：一库一根目录、一文一文件
+（文件名即建议 slug，小写中划线）、frontmatter 至少含 `title`/`date`、
+图片放同级 `assets/` 用相对路径引用、禁用 `[[wikilinks]]`。
+
+---
+
+## 3.5 选定前端模板（新站必做）
+
+引导用户从推荐来源（`https://htmlrev.com/free-astro-templates.html`）或其他渠道选定模板：
+
+- 记录到 `config.site.template`：
+```json
+"template": {
+  "source": "htmlrev",
+  "name": "模板名",
+  "url": "https://...",
+  "selectedAt": "2026-10-21"
+}
+```
+- **模板保护规则**（`references/defaults.md` §四）：此后非用户强制要求不得删改模板的
+  页面/组件/布局/设计，只按模板既有结构丰富内容。须向用户明确告知此约定。
+
+---
+
+## 3.6 收集提示词（引导用户输出，agent 不代写）
+
+按 `references/defaults.md` §三话术，引导用户提供两份提示词并落盘（用户暂不提供可跳过）：
+
+| 文件 | 内容 |
+|------|------|
+| `.geo-cms/prompts/build-prompt.md` | 站点怎么建：风格关键词、目标受众、页面清单、禁改项 |
+| `.geo-cms/prompts/article-prompt.md` | 文章怎么写：选题方向、结构、口吻、关键词、去 AI 味要求 |
+
+geo-cms 只收集与转交（article-prompt 给内容生成技能，build-prompt 给建站/设计流程），不执行生成。
+
 ---
 
 ## 4. 收集部署信息
@@ -125,12 +169,13 @@ python scripts/verify_git.py --repo <url> --path <localPath> --branch <branch>
 
 ---
 
-## 5. 写 config.json 并首次提交
+## 5. 初始化构建日志 + 写 config.json 并首次提交
 
-按 SKILL.md 的 `config.json` 结构落盘到仓库根 `.geo-cms/config.json`，然后：
+创建 `.geo-cms/build-log.md`（模板见 `assets/build-log-template.md`，首次提交时写入「初始化完成，
+无内容同步」占位条目）。然后按 SKILL.md 的 `config.json` 结构落盘到仓库根 `.geo-cms/config.json`：
 
 ```bash
-git add .geo-cms/config.json
+git add .geo-cms/
 git commit -m "chore: init geo-cms config"
 git push
 ```
@@ -138,15 +183,19 @@ git push
 `config.specs.lastUpdated` 首次置 `null`（表示规范库尚未建立，阶段二首次运行会先建基线）。
 
 > 将 `assets/geo-cms-gitignore.txt` 的内容合并进仓库根 `.gitignore`（忽略 `inbox/` 与报告文件，
-> 保留 `config.json` 与 `specs/`），避免把待合并原始导出提交进库。
+> 保留 `config.json`、`specs/`、`prompts/`、`build-log.md`），避免把待合并原始导出提交进库。
 
 ---
 
 ## 完成判定
 
 满足以下全部条件，阶段零 + 阶段一结束，可进入阶段二：
+- [ ] 默认推荐清单已展示并逐项确认（采纳或替换）
 - [ ] `config.capabilities` 四能力均已 `resolved` 且经用户确认（`deploy` 必须有真实来源）
 - [ ] `verify_git.py` 输出 `READ_OK` + `WRITE_OK`
-- [ ] `config.knowledgeBases` 至少 1 项且 `type` 合法
+- [ ] `config.knowledgeBases` 至少 1 项且 `type` 合法，目录结构约束已确认
+- [ ] `config.site.template` 已记录（新站），模板保护规则已告知
+- [ ] `prompts/` 两份提示词已落盘或用户明确暂缓
+- [ ] `.geo-cms/build-log.md` 已初始化
 - [ ] `config.deployment.type` 已填且参数完整
 - [ ] `config.json` 已提交并推送

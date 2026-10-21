@@ -18,6 +18,24 @@
 - ❌ 不生成内容正文（由用户提供或知识库导出，只搬运合并）
 - ❌ 不设定 GEO/SEO 规则（权威在外部 GEO 技能 / WebSearch，本技能仅缓存）
 - ❌ 不实现浏览器自动化 / 部署平台 API（由对应技能/连接器提供）
+- ❌ 不擅改模板（选定后非用户强制不得删改，只按模板丰富内容）
+
+## 降低使用门槛（v1.2.0 新增）
+
+桥接定位不变，但首次使用不再「从零摸索」，内置四套降门槛机制：
+
+- **默认推荐清单**（`references/defaults.md`）：前端模板来源（htmlrev 免费 Astro 模板）、
+  GEO 规则技能（geo-cn）、内容生成技能（unclecheng-reduce-ai-perception-v2）、
+  前端设计技能（frontend-design-v2）、知识库选型（ima / Obsidian / markdown，含目录结构约束）。
+  全部可替换，推荐不绑定。
+- **模板保护**：模板一经选定，非用户强制要求不得删改页面/组件/布局/设计，
+  只按模板既有结构丰富内容；每次构建日志标注「模板未动/模板变更」，可审计。
+- **提示词收集**：`.geo-cms/prompts/` 两份生产资料——`build-prompt.md`（站点怎么建）+
+  `article-prompt.md`（文章怎么写）；用户口述、技能代存，构建时转交外部技能执行。
+- **构建日志**：`.geo-cms/build-log.md` append-only，每次构建必记（同步范围/门禁/部署 URL/
+  验收/模板状态/遗留事项），下次更新接着上次进度走。
+- **渐进引导**：阶段零给推荐清单、阶段一引导选模板+提示词+KB 目录、
+  每次结束附 1~3 条下一步建议，让用户始终知道该补什么。
 
 **站点形态**
 - ✅ 支持：SSG 纯静态输出（Next.js export / Astro / Hugo / VitePress / Jekyll / 11ty …）
@@ -129,6 +147,9 @@ geo-cms/
 ├── SKILL.md                      # 入口 + 编排工作流 + 职责边界
 ├── references/                   # 详细过程文档（按需加载）
 │   ├── setup.md                  # 环境检测 + 初始化、git 验证、配置
+│   ├── first-run-faq.md          # 首次运行话术 + FAQ
+│   ├── defaults.md               # 默认推荐清单、模板保护、提示词收集、渐进引导
+│   ├── best-practices.md         # 推荐体系（Astro/Obsidian/EdgeOne）、图文适配
 │   ├── knowledge-base.md         # 知识库导出（委托 kb-export 能力）
 │   ├── geo-spec-management.md    # 规范缓存（外部产出）+ 并行策略
 │   ├── geo-optimization.md       # 委托 geo-optimize 能力 / 降级参考
@@ -143,7 +164,8 @@ geo-cms/
 └── assets/                       # 模板
     ├── content-template.md       # 文章落库模板（含 frontmatter）
     ├── spec-template.md          # 技术规范缓存文档模板
-    ├── config-sample.json        # config.json 样例（含 capabilities）
+    ├── build-log-template.md     # 构建日志条目模板（每次构建必记）
+    ├── config-sample.json        # config.json 样例（含 capabilities、site.template）
     └── geo-cms-gitignore.txt     # 目标仓库 .gitignore 模板
 ```
 
