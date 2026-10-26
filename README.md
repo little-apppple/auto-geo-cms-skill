@@ -7,15 +7,20 @@
 > **职责边界（硬）**：geo-cms 只做桥接与编排——不生成内容正文，也不设定 GEO/SEO 规则。
 > 内容生成、GEO 规则权威、浏览器自动化、部署平台 API 全部来自当前环境已装的**外部技能/连接器**
 > 或在线检索。首次使用会先检测这些依赖并与用户沟通补齐（可用 `find-skills` 查找）。
+>
+> **文本落库回环（硬约束，v1.3.0）**：任何要上站的文本不得直接生成写进模板/页面，必须先落库
+> 知识库（inbox）→ `sync_kb.py` 归一化 → `content_gate.py` 回读校验，通过后才允许使用。
+> 目的是让所有文本可追溯、可修改、可删除，杜绝「数据游离」。
 
 ## 能力边界
 
 **做（桥接 + 编排）**
 - 编排整条流水线；验证 git 读写与回库（`verify_git.py`）；把多内容源合并进 `content/`（`sync_kb.py`）；
-  检测环境依赖并与用户沟通补齐。
+  强制文本落库回环（`content_gate.py`）；检测环境依赖并与用户沟通补齐。
 
 **不做（交给外部）**
 - ❌ 不生成内容正文（由用户提供或知识库导出，只搬运合并）
+- ❌ 不允许文本游离（页面文案/meta/llms/alt 必须可追溯到知识库文章）
 - ❌ 不设定 GEO/SEO 规则（权威在外部 GEO 技能 / WebSearch，本技能仅缓存）
 - ❌ 不实现浏览器自动化 / 部署平台 API（由对应技能/连接器提供）
 - ❌ 不擅改模板（选定后非用户强制不得删改，只按模板丰富内容）
@@ -67,7 +72,30 @@
         ▼  git commit + push（verify_git.py，bridge 自身回库）
 ```
 
-## 核心机制：规范缓存一致性 + 时效（规则仍在外部）
+## 核心机制一：文本落库回环（v1.3.0 硬约束）
+
+```
+起草（用户 / agent / 外部生成技能）
+   │  ✗ 禁止直接写 content/ 或模板
+   ▼
+inbox（.geo-cms/inbox/<kb>/<slug>.md）   ← content_gate.py --stage
+   ▼
+content/（sync_kb.py 归一化 + content-index.json 登记）
+   ▼
+content_gate.py 回读校验（哈希一致 + 来源可追溯）→ 不通过则阻断构建
+   ▼
+才允许使用：构建 / 模板填充 / meta / llms.txt / FAQ / alt
+```
+
+- **为什么**：直出文本只活在会话里，改不动、删不掉、查不到出处；落库后一切都是文件 + 索引，可 diff、可回滚、可审计。
+- **覆盖范围**：正文、标题、FAQ、summary、hero/CTA/关于文案、meta、og、`llms.txt`、Schema 文本、图片 alt。
+- **例外**：纯代码/样式/构建配置、`config.json`、路由与部署参数、单字 UI 标签。
+- **五类拦截**：`DRIFT`（未登记）/ `DIVERGED`（绕过 KB 改正文）/ `BAD_SOURCE`（来源未声明）/
+  `PHANTOM`（索引有文件无）/ `COPY_NO_SRC`（文案无源文章）。
+- **文案资产**：模板里的文案登记 `.geo-cms/text-assets.json`，`from` 指向源文章 slug。
+- 详见 `references/content-roundtrip.md`。
+
+## 核心机制二：规范缓存一致性 + 时效（规则仍在外部）
 
 - 把外部 GEO 能力 / 在线检索得到的规范**缓存**到本地 `.geo-cms/specs/`，下次复用保一致。
 - 若本地已有缓存，**并行**启动「用缓存委托优化」与「实时检索刷新规范」；
@@ -119,13 +147,23 @@ git add .geo-cms/config.json && git commit -m "chore: init geo-cms config" && gi
 ### 阶段二：每次内容更新
 
 ```bash
-# 2-3) 知识库导出到 inbox（kb-export 外部能力）后，归一化合并到 content/
+# 2) 知识库导出到 inbox（kb-export 外部能力）；agent 起草的文本同样先落库
+python scripts/content_gate.py --config .geo-cms/config.json --stage drafts/x.md --kb kb1 --slug x
+
+# 3) 归一化合并到 content/ 并登记索引
 python scripts/sync_kb.py --config .geo-cms/config.json
+
+# 3.5) 文本回环门禁（strict：有游离内容即阻断）
+python scripts/content_gate.py --config .geo-cms/config.json
 
 # 4) 拉取最新源码
 git pull --rebase
 
 # 5) 委托 geo-optimize 外部能力做全站 GEO 优化；可辅以 geo_check 通用扫描
+
+# 5.5) 构建前再跑一次回环门禁（覆盖优化阶段新增的文案）
+python scripts/content_gate.py --config .geo-cms/config.json
+
 python scripts/geo_check.py --root . --out out --report .geo-cms/geo-report.json
 
 # 6) 构建 + 委托 deploy 外部能力部署（EdgeOne Pages 技能 / 自有服务器 rsync）
@@ -151,13 +189,15 @@ geo-cms/
 │   ├── defaults.md               # 默认推荐清单、模板保护、提示词收集、渐进引导
 │   ├── best-practices.md         # 推荐体系（Astro/Obsidian/EdgeOne）、图文适配
 │   ├── knowledge-base.md         # 知识库导出（委托 kb-export 能力）
+│   ├── content-roundtrip.md      # 文本落库回环硬约束（链路/范围/五类违规/命令）
 │   ├── geo-spec-management.md    # 规范缓存（外部产出）+ 并行策略
 │   ├── geo-optimization.md       # 委托 geo-optimize 能力 / 降级参考
 │   ├── deployment.md             # 委托 deploy 能力
 │   └── browser-verification.md   # 委托 browser-verify 能力 / 降级
-├── scripts/                      # 可执行脚本（bridge 自身仅 verify_git/sync_kb）
+├── scripts/                      # 可执行脚本（bridge 自身：verify_git/sync_kb/content_gate）
 │   ├── verify_git.py             # [bridge] git 读写权限探测循环
 │   ├── sync_kb.py                # [bridge] KB 导出归一化合并到 content
+│   ├── content_gate.py           # [bridge] 文本回环门禁 + --stage/--adopt
 │   ├── fetch_geo_specs.py        # [降级] 缓存外部 GEO 规范（不设定规则）
 │   ├── geo_check.py              # [降级] 通用静态 GEO 缺口扫描
 │   └── verify_deploy.py          # [降级] 最小本地浏览器核对
@@ -165,7 +205,8 @@ geo-cms/
     ├── content-template.md       # 文章落库模板（含 frontmatter）
     ├── spec-template.md          # 技术规范缓存文档模板
     ├── build-log-template.md     # 构建日志条目模板（每次构建必记）
-    ├── config-sample.json        # config.json 样例（含 capabilities、site.template）
+    ├── config-sample.json        # config.json 样例（含 capabilities、site.template、contentGate）
+    ├── text-assets-sample.json   # 文案资产登记表样例（from → 源文章 slug）
     └── geo-cms-gitignore.txt     # 目标仓库 .gitignore 模板
 ```
 

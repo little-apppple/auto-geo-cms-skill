@@ -5,6 +5,11 @@
 
 > **职责边界**：geo-cms 不生成内容。「导出」动作由 `config.capabilities.kb-export` 选定的来源完成
 > （连接器技能或用户直接上传），geo-cms 只负责把导出物归一化合并进 `content/`。
+>
+> **回环前置（硬约束一）**：inbox 是唯一合法的文本入口。任何 agent/外部技能起草的文本都必须先落进 inbox
+> （`content_gate.py --stage`），再由 `sync_kb.py` 归一化入 `content/`，最后由 `content_gate.py` 回读校验。
+> 直接 `Write content/xxx.md` 或把文本写进模板 = 违规，门禁报 `DRIFT`/`DIVERGED` 并阻断构建。
+> 详见 `references/content-roundtrip.md`。
 
 ---
 
@@ -54,10 +59,21 @@
 
 ---
 
-## 直接上传文章
+## 直接上传文章 / agent 起草
 
 用户「直接上传文章」等价于：把文章作为 `markdown` 类型的一次性 KB 放入
-`.geo-cms/inbox/_upload/`，再跑 `sync_kb.py`。无需登记进 `config.knowledgeBases`。
+`.geo-cms/inbox/_upload/`，再跑 `sync_kb.py`。`_upload` 无需登记进 `config.knowledgeBases`，
+`sync_kb.py` 检测到该目录存在时会隐式纳入扫描。
+
+agent 或外部生成技能产出的文本走同一入口，且**必须用脚本落库**，不得手写文件：
+
+```bash
+python scripts/content_gate.py --config .geo-cms/config.json \
+  --stage drafts/geo-intro.md --kb kb1 --slug what-is-geo
+python scripts/sync_kb.py --config .geo-cms/config.json
+```
+
+`--stage` 会补齐 `title/date/slug/source/provenance=kb-roundtrip/stagedAt`，确保后续可审计。
 
 ---
 
@@ -80,3 +96,5 @@
 | 导出为空 | 确认 KB 选择/授权范围；空更新则跳过合并 |
 | frontmatter 缺失 | `sync_kb.py` 用文件名/首行 H1 兜底生成 |
 | 图片引用断裂 | 记录到验收清单，部署阶段补 alt/转存 |
+| 门禁报 `DRIFT` | 有文本绕过 inbox 直接进了 `content/`：`--adopt` 纳管，或删除后重新 `--stage` |
+| 门禁报 `DIVERGED` | 改的是 `content/` 副本而非 inbox 源：把改动搬回 inbox 后重跑 `sync_kb.py` |

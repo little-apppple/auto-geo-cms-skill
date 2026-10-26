@@ -182,8 +182,23 @@ git push
 
 `config.specs.lastUpdated` 首次置 `null`（表示规范库尚未建立，阶段二首次运行会先建基线）。
 
+**同时初始化文本回环所需两件东西**（硬约束一，详见 `references/content-roundtrip.md`）：
+
+```jsonc
+// .geo-cms/config.json 片段
+"contentGate": { "mode": "strict", "textAssets": ".geo-cms/text-assets.json" }
+```
+
+```json
+// .geo-cms/text-assets.json（空表起步，随文案增长而登记）
+{ "assets": [] }
+```
+
+并向用户说明一句话规则：「所有上站文案先落库、再读回来用，不能直接写进页面」。
+`mode` 默认 `strict`；仅当用户明确同意放宽时改 `warn`，且要求在下一次构建日志里记录原因。
+
 > 将 `assets/geo-cms-gitignore.txt` 的内容合并进仓库根 `.gitignore`（忽略 `inbox/` 与报告文件，
-> 保留 `config.json`、`specs/`、`prompts/`、`build-log.md`），避免把待合并原始导出提交进库。
+> 保留 `config.json`、`specs/`、`prompts/`、`build-log.md`、`text-assets.json`），避免把待合并原始导出提交进库。
 
 ---
 
@@ -197,5 +212,7 @@ git push
 - [ ] `config.site.template` 已记录（新站），模板保护规则已告知
 - [ ] `prompts/` 两份提示词已落盘或用户明确暂缓
 - [ ] `.geo-cms/build-log.md` 已初始化
+- [ ] `config.contentGate` 已写入（默认 `strict`）+ `.geo-cms/text-assets.json` 已建空表，
+      用户已知晓「文本落库回环」规则
 - [ ] `config.deployment.type` 已填且参数完整
 - [ ] `config.json` 已提交并推送

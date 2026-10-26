@@ -9,6 +9,7 @@
 - **触发**：用户「把知识库新文章同步到官网」
 - **来源**：ima（kb1）
 - **同步**：added 2 / updated 1 / pruned 0（详见 `.geo-cms/sync-manifest.json`）
+- **回环门禁**：strict 通过（content 12 篇全登记，文案资产 4 项均有 `from`）
 - **GEO**：委托 geo-cn 优化；门禁 P0=0（`.geo-cms/geo-report.json`）
 - **构建**：`astro build` ✓ 纯静态
 - **部署**：EdgeOne Pages ✓ https://example.com/

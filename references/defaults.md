@@ -70,6 +70,8 @@
 
 ## 四、模板保护规则（硬约束）
 
+> 注意：模板保护管「结构/设计能不能改」，文本落库回环（见「六」）管「文案从哪来」。两者独立，同时生效。
+
 模板一经选定并写入 `config.site.template`：
 
 - ✅ **允许**（内容丰富，不需额外确认）：
@@ -96,3 +98,29 @@
 | 用户不知道干嘛 | 按「填提示词 → 补文章 → 跑同步 → 验收上线」提示最短下一步 |
 
 > 原则：**每次只引导 1~3 件事**，不一次倾倒全部要求。
+
+---
+
+## 六、文本落库回环（硬约束，优先级最高）
+
+> 完整规则见 `references/content-roundtrip.md`。
+
+**任何要上站的文本，禁止直接生成写进模板/页面，必须先转存知识库、再读回来使用。**
+
+```bash
+# 起草 → 落库（唯一合法入口）
+python scripts/content_gate.py --config .geo-cms/config.json --stage <draft> --kb <kbId> --slug <slug>
+# 归一化入 content/
+python scripts/sync_kb.py --config .geo-cms/config.json
+# 回读门禁（strict：不通过即不得构建）
+python scripts/content_gate.py --config .geo-cms/config.json
+```
+
+- 覆盖：正文、FAQ、summary、hero/CTA/关于文案、meta、og、`llms.txt`、Schema 文本、图片 alt。
+- 例外：纯代码/样式/构建配置、`config.json`、路由与部署参数、单字 UI 标签。
+- 散落在模板里的文案必须登记 `.geo-cms/text-assets.json`，`from` 指向源文章 slug。
+- 用户嫌麻烦时的话术：「落库只多一条命令，换来的是这句话以后能改、能删、能查出处；
+  不落库的话，下次想改它，得先猜它当初写在哪。」
+
+引导时机：阶段一 Setup（说明规则 + 建 `text-assets.json` 空文件）、每次用户要求「直接写一段文案上站」时。
+

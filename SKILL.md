@@ -7,15 +7,17 @@ description: |
   将「代码仓库（源码）」与「个人知识库（文章）」合并后，委托环境中已安装的外部技能（GEO 优化 / 浏览器验收）
   或在线检索完成优化与验收，再部署上线并把代码提交回库。首次使用会检测环境依赖并与用户沟通补齐（可用 find-skills 查找），
   并提供默认推荐清单（Astro 模板来源、geo-cn 规则技能、内容生成技能、ima/Obsidian 知识库）、模板保护、提示词收集、构建日志与渐进引导，降低使用门槛。
+  **硬约束：所有文本必须走知识库落库回环（inbox → sync_kb → content_gate 回读校验）后才能上站，禁止模型直出文本，防止数据游离无法管理。**
   触发词：geo cms、静态官网内容管理、知识库同步官网、官网部署、SSG 内容更新、文章同步到官网、官网上线验收
-version: 1.2.1
+version: 1.3.0
 display_name: "GEO 友好 CMS 桥接"
 displayName: "GEO 友好 CMS 桥接"
 metadata:
-  version: 1.2.1
+  version: 1.3.0
   author: geo-cms
-  description_zh: "内容↔部署桥接：代码仓库 + 知识库合并 → 委托外部 GEO 技能/在线检索优化 → 委托部署与浏览器验收 → 回库；内容生成与 GEO 规则设定均为外部能力；内置默认推荐清单、模板保护、提示词收集、构建日志与渐进引导降低使用门槛"
+  description_zh: "内容↔部署桥接：代码仓库 + 知识库合并 → 委托外部 GEO 技能/在线检索优化 → 委托部署与浏览器验收 → 回库；内容生成与 GEO 规则设定均为外部能力；所有文本强制走知识库落库回环（content_gate.py 门禁阻断游离内容）；内置默认推荐清单、模板保护、提示词收集、构建日志与渐进引导降低使用门槛"
   changelog:
+    "1.3.0": "新增硬约束「文本落库回环」：任何上站文本必须落库 inbox → sync_kb 归一化 → 回读校验 → 才允许使用，禁止模型直出文本进模板/页面；新增 scripts/content_gate.py（DRIFT/DIVERGED/BAD_SOURCE/PHANTOM/COPY_NO_SRC 五类检查，strict 阻断构建）与 .geo-cms/text-assets.json 文案资产登记；新增 references/content-roundtrip.md；阶段二新增步骤 4「回环门禁」；sync_kb 隐式扫描 `_upload` inbox"
     "1.2.1": "loop review 修复：setup.md 补默认推荐清单(§0.0)/模板选定(§3.5)/提示词收集(§3.6)/构建日志初始化，完成判定扩至 9 项；config-sample 补 site.template；README 新增降门槛章节并补全目录树；构建日志统一为末尾追加(修复读取顺序矛盾)；gitignore 注释更正保留清单"
     "1.2.0": "降低使用门槛：新增 references/defaults.md 默认推荐清单（Astro 模板来源 htmlrev、geo-cn 规则技能、内容生成技能、ima/Obsidian 知识库+目录约束）；模板保护规则（选定后非用户强制不得删改，只按模板丰富内容）；提示词收集（.geo-cms/prompts/ 构建提示词+文章提示词）；构建日志（.geo-cms/build-log.md 每次必记）；渐进引导（每步告知该补什么）"
     "1.1.4": "修复 sync_kb.py 路径根（config 在 .geo-cms 时正确解析 content/inbox）；新增持久 .geo-cms/content-index.json（跨运行增量 diff + prune 作用域）与默认孤儿清理（--no-prune 可关）；步骤 8 验收页清单从 sync-manifest 派生；best-practices 补 G4/G5（Astro Content Collections + llms.txt/sitemap 生成）"
@@ -44,9 +46,13 @@ allowed-tools: Read, Grep, Glob, Bash, WebFetch, WebSearch, Write, Edit, Agent, 
 - ✅ 验证 git **读取/写入权限**并把更新**提交回代码库**（`scripts/verify_git.py`）。
 - ✅ 把多个内容源（知识库 / 文档库 / 用户直接上传）**归一化合并**进仓库 `content/` 目录（`scripts/sync_kb.py`）。
 - ✅ 检测环境依赖、与用户沟通补齐外部能力（见阶段零）。
+- ✅ **强制文本落库回环**：所有上站文本先落库 inbox、经 `sync_kb.py` 归一化、再由 `content_gate.py`
+  回读校验通过后才允许使用（详见下方「硬约束一」）。
 
 ### 本技能「不做」什么（交给外部）
 - ❌ **不生成内容**：文章正文由用户提供或来自知识库，本技能只搬运、合并、落库，不创作正文。
+- ❌ **不允许文本游离**：任何上站文本（含页面文案/meta/llms/alt）必须经知识库落库回环
+  （inbox → sync_kb → content_gate 回读校验）后才可使用，禁止模型直出写进模板或页面（见「硬约束一」）。
 - ❌ **不设定 GEO/SEO 规则**：robots/llms/Schema/FAQ 等规范的「权威性」来自外部 GEO 技能或在线检索；
   本技能最多**缓存归档**这些外部产出，绝不自己拍板规则口径。
 - ❌ **不实现浏览器自动化 / 部署平台 API**：这些由对应的连接器或技能提供，本技能只负责编排调用。
@@ -54,6 +60,48 @@ allowed-tools: Read, Grep, Glob, Bash, WebFetch, WebSearch, Write, Edit, Agent, 
   不得删改页面/组件/布局/设计，只允许按模板既有结构填充与丰富内容（详见 `references/defaults.md` 模板保护规则）。
 
 > 一句话：**能力（content / GEO rules / browser / deploy）全在外部；geo-cms 只做连接与编排。**
+
+---
+
+### 硬约束一：文本落库回环（KB Round-trip，最高优先级）
+
+> 详细规则、命令与反例见 `references/content-roundtrip.md`。
+
+**任何要上站的文本，不得直接生成并写入站点，必须先转存进知识库、再从知识库读回来使用。**
+目的是杜绝「数据游离」：文本只存在于会话上下文或模板里，导致无法管理、无法审计、无法复用。
+
+强制链路（缺一步即禁止构建/部署）：
+
+```
+① 起草（用户 / agent / 外部生成技能均可）
+   ✗ 禁止直接写 content/ 或 模板/页面/meta
+        ▼
+② 落库 inbox   .geo-cms/inbox/<kbId>/<slug>.md
+   content_gate.py --stage   带 title/date/slug/source/provenance
+        ▼
+③ 归一化入库   sync_kb.py  →  content/<slug>.md + content-index.json
+        ▼
+④ 回读门禁     content_gate.py   哈希一致 + 来源可追溯，否则退出码 1 阻断
+        ▼
+⑤ 才允许使用（构建 / GEO 优化 / 模板填充 / meta / llms.txt / FAQ / alt）
+   文本来源必须是第 ③ 步落盘的文件，不得取自语义记忆
+```
+
+**适用范围**：文章正文、标题、FAQ、summary、页面文案（hero/卖点/CTA/关于）、meta title/description、
+og 文案、`llms.txt` 说明、Schema 文本、图片 alt、模板占位替换内容。
+
+**例外**（不需要回环，但仍需可追溯）：纯代码/样式/构建配置、`config.json`、路由与部署参数、
+结构性常量（导航标题直接取自文章 `title` 字段视为已回环）、单字 UI 标签。
+
+**内容源与文案资产的区分**：
+- 落在 `site.contentDir` 里的文章 → 必须由 `sync_kb.py` 生成，且登记在 `content-index.json`。
+- 散落在模板/页面里的文案 → 登记到 `.geo-cms/text-assets.json`，`from` 指向源文章 slug，
+  否则门禁报 `COPY_NO_SRC`。
+
+**判定口诀**：删掉当前会话上下文，这段文本还能从磁盘上找到出处吗？找不到即违规。
+
+**禁止的规避手段**：把 `config.contentGate.mode` 长期改为 `warn` 以绕过门禁；直接把生成结果
+`Write` 进 `content/`；改完 `content/` 却不回改 inbox 源文件。三者均视为违反本约束。
 
 ### 站点形态边界（不变）
 仅支持 SSG（静态站点生成器）构建、产物为**纯静态文件**的官网：
@@ -93,6 +141,10 @@ allowed-tools: Read, Grep, Glob, Bash, WebFetch, WebSearch, Write, Edit, Agent, 
 │  合并：KB 文章归一化后写入仓库 content 目录     │
 └───────────────────────┬──────────────────────┘
                         │
+            ┌───────────▼────────────┐
+            │ 回环门禁 content_gate.py │  ← 游离内容即阻断（bridge 自身）
+            │ 来源可追溯 + 哈希一致     │
+            └───────────┬────────────┘
             ┌───────────▼────────────┐
             │ 委托 geo-optimize 外部能力│  ← 规则权威在外部 GEO 技能/在线检索
             │ 做全站 GEO/SEO 优化       │     bridge 仅缓存其产出到 specs/
@@ -162,9 +214,15 @@ allowed-tools: Read, Grep, Glob, Bash, WebFetch, WebSearch, Write, Edit, Agent, 
     "deploy":        {"resolved": "edgeone-pages","mode": "connector"},
     "browser-verify":{"resolved": "agent-browser","mode": "skill"}
   },
-  "specs": {"dir": ".geo-cms/specs", "lastUpdated": null}
+  "specs": {"dir": ".geo-cms/specs", "lastUpdated": null},
+  "contentGate": {
+    "mode": "strict",
+    "textAssets": ".geo-cms/text-assets.json"
+  }
 }
 ```
+
+`contentGate.mode`：`strict`（默认，门禁不通过即阻断构建/部署）/ `warn`（仅告警，需在构建日志说明原因）。
 
 ---
 
@@ -251,12 +309,25 @@ allowed-tools: Read, Grep, Glob, Bash, WebFetch, WebSearch, Write, Edit, Agent, 
 对每个 `config.knowledgeBases`，用 `capabilities.kb-export` 选定的来源（连接器技能 / 用户上传）
 把文章导出为 Markdown 到 `.geo-cms/inbox/<kb>/`。详见 `references/knowledge-base.md`。
 
+**若本次有 agent 起草的文本**（外部技能产出的文章、页面文案、FAQ、meta 等）：**禁止直接写进 `content/`
+或模板**，一律先落库 ——
+`python scripts/content_gate.py --config .geo-cms/config.json --stage <草稿> --kb <kbId> --slug <slug>`。
+
 ### 3. 合并到仓库 content 目录（bridge 自身）
 运行 `scripts/sync_kb.py --config .geo-cms/config.json`
 - 归一化 frontmatter（title/date/slug/tags），按 slug 去重；写入 `site.contentDir`，输出「新增/更新/跳过/清理」清单到 `.geo-cms/sync-manifest.json`。
 - **持久内容索引**：同步写 `.geo-cms/content-index.json`（slug → {title, source, hash, lastSync, origin}），跨运行保留，支撑桥接层真增量 diff 与删除作用域。
 - **孤儿清理（prune，默认开启）**：知识库中已删除/移除的文章，其 `content/<slug>.md` 会被自动删除；仅作用于 `origin=kb` 的索引项，手写 `origin=manual` 文件永不被误删。需保留可用 `--no-prune` 关闭。
 - 步骤 8 验收页面清单直接取本步 `sync-manifest.json` 的 added/updated（首页必含）。
+- `inbox/_upload/`（用户直传 / 一次性草稿）在存在时被隐式纳入扫描，无需登记进 `knowledgeBases`。
+
+### 3.5 文本回环门禁（同步后，硬约束一）
+运行 `scripts/content_gate.py --config .geo-cms/config.json`
+- `DRIFT`（content 有文件但未登记）/ `DIVERGED`（哈希不一致，绕过 KB 改了正文）/
+  `BAD_SOURCE`（来源 KB 未声明）/ `PHANTOM`（索引有、文件无）/ `COPY_NO_SRC`（文案无源文章）任一命中 → **退出码 1，停止**。
+- 修正方式：改动搬到 inbox 源文件后重跑步骤 3；历史文件用 `--adopt` 纳入 KB；文案补齐 `from`。
+- 允许 `warn` 的唯一情形：用户明确知情并同意，且本次构建日志记录原因与期限。
+
 
 ### 4. 拉取最新源码
 `git pull --rebase`（避免与远程分叉）。
@@ -266,6 +337,13 @@ allowed-tools: Read, Grep, Glob, Bash, WebFetch, WebSearch, Write, Edit, Agent, 
   llms.txt、JSON-LD、FAQ 结论前置、NAP 可见、图片 alt、Meta 可引用等）。**规则口径由该技能/在线检索决定。**
 - **降级**：若未安装 GEO 技能，用 `WebSearch` 获取最新规范、由本技能按规范缓存应用（bridge 仅搬运，不创作规则）；
   可用 `scripts/geo_check.py` 做**通用**静态缺口扫描作为辅助（规则仍以外部 GEO 能力为准）。
+- **优化产出的文本同样受硬约束一管辖**：llms.txt 说明、meta description、FAQ、hero 文案、图片 alt
+  若要新增或改写，必须先落库（`--stage` 到 inbox 或登记 `text-assets.json` 的 `from`），不得由模型直出写进文件。
+
+### 5.5 文本回环门禁（构建前，二次校验）
+再跑一次 `scripts/content_gate.py --config .geo-cms/config.json`
+- 覆盖步骤 5 期间新增的文案与文件改动（模板填充、llms.txt、meta、alt）。
+- 未通过 → 回到步骤 5 补齐落库/登记，禁止进入构建。
 
 ### 6. 构建 + 门禁 + 部署（委托 deploy 外部能力）
 - 运行 `site.buildCmd` 产出纯静态文件。
@@ -287,7 +365,7 @@ allowed-tools: Read, Grep, Glob, Bash, WebFetch, WebSearch, Write, Edit, Agent, 
 
 ### 9. 提交更新代码回库（bridge 自身）
 - **追加构建日志（必做）**：按 `assets/build-log-template.md` 向 `.geo-cms/build-log.md` 写入本次条目
-  （触发来源、同步 added/updated/pruned、GEO 门禁结果、构建、部署 URL、验收结果、
+  （触发来源、同步 added/updated/pruned、**回环门禁结果**、GEO 门禁结果、构建、部署 URL、验收结果、
   **模板未动/模板变更**、所用外部能力、遗留事项与下一步建议）。
 - **渐进引导（每次结束附 1~3 条下一步建议）**：依据构建日志遗留事项 + geo-report 未清项 +
   prompts 缺失项（如 article-prompt 未填则提醒）。让用户始终知道该补什么、该添加什么。
@@ -305,12 +383,14 @@ allowed-tools: Read, Grep, Glob, Bash, WebFetch, WebSearch, Write, Edit, Agent, 
 | references | `references/defaults.md` | **默认推荐清单**（模板/技能/知识库+目录约束）、模板保护规则、提示词收集、渐进引导 | 阶段零/一、步骤 9 |
 | references | `references/best-practices.md` | 推荐体系（SSG/KB/托管选型）、图文内容适配、Obsidian 接入要点 | 选型/阶段零 |
 | references | `references/knowledge-base.md` | 知识库导出（委托 kb-export 能力） | 步骤 2 |
+| references | `references/content-roundtrip.md` | **文本落库回环**硬约束：链路、适用范围、五类违规、命令与反例 | 步骤 2/3.5/5.5 |
 | references | `references/geo-spec-management.md` | 规范缓存（外部产出）+ 并行策略 | 步骤 0/7 |
 | references | `references/geo-optimization.md` | 如何委托 geo-optimize 能力 / 降级 | 步骤 5 |
 | references | `references/deployment.md` | 如何委托 deploy 能力 | 步骤 6 |
 | references | `references/browser-verification.md` | 如何委托 browser-verify 能力 / 降级 | 步骤 8 |
 | scripts | `scripts/verify_git.py` | **bridge 自身**：git 读取/写入权限探测 | 阶段一/九 |
-| scripts | `scripts/sync_kb.py` | **bridge 自身**：KB 导出归一化合并到 content；写 `.geo-cms/content-index.json` 持久索引 + 默认 prune 孤儿 | 步骤 3 |
+| scripts | `scripts/sync_kb.py` | **bridge 自身**：KB 导出归一化合并到 content；写 `.geo-cms/content-index.json` 持久索引 + 默认 prune 孤儿；隐式扫描 `_upload` | 步骤 3 |
+| scripts | `scripts/content_gate.py` | **bridge 自身**：文本回环门禁（DRIFT/DIVERGED/BAD_SOURCE/PHANTOM/COPY_NO_SRC）+ `--stage` 落库 + `--adopt` 纳管 | 步骤 2/3.5/5.5 |
 | scripts | `scripts/fetch_geo_specs.py` | 降级辅助：缓存外部 GEO 规范（不设定规则） | 步骤 0/7 |
 | scripts | `scripts/geo_check.py` | 降级辅助：通用静态 GEO 缺口扫描 | 步骤 5/6 |
 | scripts | `scripts/verify_deploy.py` | 降级辅助：最小本地浏览器核对 | 步骤 8 |
@@ -333,14 +413,23 @@ allowed-tools: Read, Grep, Glob, Bash, WebFetch, WebSearch, Write, Edit, Agent, 
 | 部署失败 | 保留上一版线上（平台回滚 / 不覆盖远程目录），修复后重部署 |
 | 浏览器验收不通过 | 回到步骤 5/6 修复，重新部署并复验 |
 | 用户要求删改模板但非强制场景 | 按模板保护规则拒绝并解释；用户坚持 → 引导前端设计技能执行，日志记录变更点 |
+| 回环门禁 `DRIFT` | 文本未落库。`--adopt` 纳入 KB 或删除该文件，再跑 `sync_kb.py` |
+| 回环门禁 `DIVERGED` | 绕过 KB 改了正文。把改动搬回 inbox 源文件，重跑 `sync_kb.py` |
+| 回环门禁 `COPY_NO_SRC` | 页面/meta 文案无来源。补 `text-assets.json` 的 `from`，或先把源文章落库 |
+| 回环门禁 `PHANTOM` | 删除绕过同步脚本。重跑 `sync_kb.py` 让其 prune 并清理索引 |
+| 用户要求跳过回环直接生成 | 拒绝，说明会形成无法管理的游离数据；如需快速产出，可落库到 `inbox/_upload/` 再同步（同样一句话的代价） |
 | WebSearch 不可用 | 退回纯本地规范缓存继续，标注「未做实时增量」 |
 
 ## 质量保障
 
 - 每次部署**必须**经过步骤 5（委托优化）与步骤 8（委托验收），二者缺一无视「完成」。
+- **文本回环门禁（步骤 3.5 + 5.5）不通过不得构建、不得部署**；`mode=warn` 属例外，须记入构建日志。
+- 所有上游文本的可追溯性以 `.geo-cms/content-index.json` 与 `content-gate.json` 为唯一凭据，不以会话记忆为准。
 - 规范缓存 `specs/` 与 `config.json` 随仓库提交，保证团队优化口径一致（口径来自外部 GEO 能力）。
 - 所有 GEO 结论避免绝对承诺；**规则权威永远在外部 GEO 技能/在线检索，不在本技能**。
 - 不虚构 URL/数据；外部检索所得须标注来源写入 `specs/`。
-- 本技能不生成正文内容，仅搬运/合并用户提供或知识库导出的内容。
+- 本技能不生成正文内容，仅搬运/合并用户提供或知识库导出的内容；上游即便由外部能力生成，也必须落库后再用。
+- 文本落库回环：所有上站文本可追溯到 `content-index.json`（文章）或 `text-assets.json` 的 `from`（文案），
+  无源头即视为数据游离，门禁阻断。
 - 模板保护：选定模板后非用户强制不得删改，每次构建日志必须标注「模板未动/模板变更」，可审计。
 - 构建日志 append-only：`.geo-cms/build-log.md` 每次构建必追加，不修改历史记录；`prompts/` 是用户生产资料，只收集转交不代写。

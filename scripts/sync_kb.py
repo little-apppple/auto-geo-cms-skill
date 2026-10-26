@@ -98,7 +98,16 @@ def main():
     seen = set()
     today = str(date.today())
 
-    for kb in cfg.get("knowledgeBases", []):
+    # KB round-trip rule: ad-hoc uploads and agent drafts must also live in a
+    # managed inbox, so `_upload` is scanned implicitly when present.
+    kbs = list(cfg.get("knowledgeBases", []))
+    upload_inbox = os.path.join(repo_root, ".geo-cms", "inbox", "_upload")
+    if os.path.isdir(upload_inbox) and not any(
+            os.path.basename(str(kb.get("inbox", "")).rstrip("/")) == "_upload" for kb in kbs):
+        kbs.append({"id": "_upload", "type": "markdown",
+                    "inbox": ".geo-cms/inbox/_upload"})
+
+    for kb in kbs:
         inbox = os.path.join(repo_root, kb.get("inbox", f".geo-cms/inbox/{kb['id']}"))
         if not os.path.isdir(inbox):
             continue

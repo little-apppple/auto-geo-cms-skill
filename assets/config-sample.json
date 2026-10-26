@@ -48,5 +48,9 @@
   "specs": {
     "dir": ".geo-cms/specs",
     "lastUpdated": null
+  },
+  "contentGate": {
+    "mode": "strict",
+    "textAssets": ".geo-cms/text-assets.json"
   }
 }

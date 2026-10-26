@@ -1,0 +1,24 @@
+{
+  "_doc": "文案资产登记表：contentDir 之外的文本（hero/meta/llms/FAQ/alt）必须用 from 指向源文章 slug，否则回环门禁报 COPY_NO_SRC。由 content_gate.py 校验。",
+  "assets": [
+    {
+      "id": "home-hero",
+      "kind": "page-copy",
+      "path": "src/pages/index.astro",
+      "from": "what-is-geo",
+      "excerpt": "GEO 让 AI 引擎愿意引用你的官网"
+    },
+    {
+      "id": "home-meta",
+      "kind": "meta",
+      "path": "src/layouts/Base.astro",
+      "from": "what-is-geo"
+    },
+    {
+      "id": "llms-intro",
+      "kind": "llms",
+      "path": "public/llms.txt",
+      "from": "geo-checklist"
+    }
+  ]
+}
